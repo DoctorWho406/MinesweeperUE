@@ -41,7 +41,7 @@ TSharedRef< FSlateStyleSet > FMinesweeperStyle::Create()
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("MinesweeperStyle"));
 	Style->SetContentRoot(IPluginManager::Get().FindPlugin("Minesweeper")->GetBaseDir() / TEXT("Resources"));
 
-	Style->Set("Minesweeper.OpenPluginWindow", new IMAGE_BRUSH_SVG(TEXT("PlaceholderButtonIcon"), Icon20x20));
+	Style->Set("Minesweeper.OpenPluginWindow", new IMAGE_BRUSH_SVG(TEXT("ButtonIcon"), Icon20x20));
 
 	return Style;
 }
