@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogMinesweeperPlugin, Log, All);
+
 class FToolBarBuilder;
 class FMenuBuilder;
 
@@ -27,4 +29,8 @@ private:
 
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;
+
+	int Width = 0;
+	int Heigth = 0;
+	int Mines = 0;
 };
