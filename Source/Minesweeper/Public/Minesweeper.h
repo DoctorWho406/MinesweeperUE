@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
+#include "MinesweeperData.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMinesweeperPlugin, Log, All);
 
@@ -26,26 +27,15 @@ private:
 
 	TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);
 
-	int GetGridSize() const;
-	int GetIndex(const int x, const int y) const;
-	bool IsOutOfGrid(const int x, const int y) const;
-
 	void GenerateGrid();
-	int CountNearestMines(const int x, const int y) const;
 
 	void OnButtonPressed(const int x, const int y);
-	void RevealFieldRecursive(const int x, const int y, TMap<int, bool> &discovered);
+	void RevealFieldRecursive(const int x, const int y, TMap<int, bool>& discovered);
 
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;
 
 	TSharedRef<class SVerticalBox> VerticalBox = SNew(SVerticalBox);
 
-	int Width = 0;
-	int Heigth = 0;
-	int Mines = 0;
-
-	TSet<int> MinesPosition;
-
-	bool GameOver = false;
+	TSharedPtr<MinesweeperData> MinesweeperClass;
 };

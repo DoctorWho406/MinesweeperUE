@@ -50,21 +50,19 @@ void FMinesweeperModule::StartupModule() {
 								[
 									SNew(SEditableTextBox)
 										.OnTextCommitted_Lambda([this](const FText& InValue, ETextCommit::Type& InCommitType) -> void {
-										UE_LOG(LogMinesweeperPlugin, Display, TEXT("Commited text %s(%d)"), *InValue.ToString(), InValue.IsNumeric());
-										Heigth = FCString::Atoi(*InValue.ToString());
-										UE_LOG(LogMinesweeperPlugin, Display, TEXT("Read %d"), Heigth);
+										MinesweeperClass->SetHeigth(FCString::Atoi(*InValue.ToString()));
 											})
 										.OnVerifyTextChanged_Lambda([this](const FText& InValue, FText& InErrorMessage) -> bool {
 												if (InValue.IsNumeric()) {
-													if (FCString::Atoi(*InValue.ToString()) < 0) {
+													if (MinesweeperClass->SetHeigth(FCString::Atoi(*InValue.ToString()))) {
+														return true;
+													} else {
 														InErrorMessage = LOCTEXT("MinesweeperWindowWidgetSettingHeigthNegativeError", "Insert positive value");
-														Heigth = 0;
 														return false;
 													}
-													return true;
 												}
+												MinesweeperClass->SetHeigth(0);
 												InErrorMessage = LOCTEXT("MinesweeperWindowWidgetSettingHeigthNANError", "Value is not a numeric value");
-												Heigth = 0;
 												return false;
 											})
 								]
@@ -82,20 +80,19 @@ void FMinesweeperModule::StartupModule() {
 									SNew(SEditableTextBox)
 										.OnTextCommitted_Lambda([this](const FText& InValue, ETextCommit::Type& InCommitType) -> void {
 										UE_LOG(LogMinesweeperPlugin, Display, TEXT("Commited text %s(%d)"), *InValue.ToString(), InValue.IsNumeric());
-										Width = FCString::Atoi(*InValue.ToString());
-										UE_LOG(LogMinesweeperPlugin, Display, TEXT("Read %d"), Width);
+										MinesweeperClass->SetWidth(FCString::Atoi(*InValue.ToString()));
 											})
 										.OnVerifyTextChanged_Lambda([this](const FText& InValue, FText& InErrorMessage) -> bool {
 												if (InValue.IsNumeric()) {
-													if (FCString::Atoi(*InValue.ToString()) < 0) {
+													if (MinesweeperClass->SetWidth(FCString::Atoi(*InValue.ToString()))) {
+														return true;
+													} else {
 														InErrorMessage = LOCTEXT("MinesweeperWindowWidgetSettingWidthNegativeError", "Insert positive value");
-														Width = 0;
 														return false;
 													}
-													return true;
 												}
+												MinesweeperClass->SetWidth(0);
 												InErrorMessage = LOCTEXT("MinesweeperWindowWidgetSettingWidthNANError", "Value is not a numeric value");
-												Width = 0;
 												return false;
 											})
 								]
@@ -115,20 +112,19 @@ void FMinesweeperModule::StartupModule() {
 							SNew(SEditableTextBox)
 								.OnTextCommitted_Lambda([this](const FText& InValue, ETextCommit::Type& InCommitType) -> void {
 								UE_LOG(LogMinesweeperPlugin, Display, TEXT("Commited text %s(%d)"), *InValue.ToString(), InValue.IsNumeric());
-								Mines = FCString::Atoi(*InValue.ToString());
-								UE_LOG(LogMinesweeperPlugin, Display, TEXT("Read %d"), Mines);
+								MinesweeperClass->SetMines(FCString::Atoi(*InValue.ToString()));
 									})
 								.OnVerifyTextChanged_Lambda([this](const FText& InValue, FText& InErrorMessage) -> bool {
 										if (InValue.IsNumeric()) {
-											if (FCString::Atoi(*InValue.ToString()) < 0) {
+											if (MinesweeperClass->SetMines(FCString::Atoi(*InValue.ToString()))) {
+												return true;
+											} else {
 												InErrorMessage = LOCTEXT("MinesweeperWindowWidgetSettingMinesNegativeError", "Insert positive value");
-												Mines = 0;
 												return false;
 											}
-											return true;
 										}
+										MinesweeperClass->SetMines(0);
 										InErrorMessage = LOCTEXT("MinesweeperWindowWidgetSettingMinesNANError", "Value is not a numeric value");
-										Mines = 0;
 										return false;
 									})
 						]
@@ -152,6 +148,8 @@ void FMinesweeperModule::StartupModule() {
 		FMinesweeperCommands::Get().OpenPluginWindow,
 		FExecuteAction::CreateRaw(this, &FMinesweeperModule::PluginButtonClicked),
 		FCanExecuteAction());
+
+	MinesweeperClass = MakeShareable(new MinesweeperData);
 
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FMinesweeperModule::RegisterMenus));
 
@@ -211,49 +209,29 @@ TSharedRef<SDockTab> FMinesweeperModule::OnSpawnPluginTab(const FSpawnTabArgs& S
 		];
 }
 
-int FMinesweeperModule::GetGridSize() const {
-	return Width * Heigth;
-}
-
-int FMinesweeperModule::GetIndex(const int InX, const int InY) const {
-	return InY * Width + InX;
-}
-
-bool FMinesweeperModule::IsOutOfGrid(const int InX, const int InY) const {
-	return InX < 0 || InX >= Width || InY < 0 || InY >= Heigth;
-}
-
 void FMinesweeperModule::GenerateGrid() {
-	if (Width <= 0 || Heigth <= 0 || Mines <= 0 || Mines > GetGridSize()) {
-		UE_LOG(LogMinesweeperPlugin, Error, TEXT("Values {Width: %d, Heigth: %d, Mines: %d} not valid for a new game"), Width, Heigth, Mines);
+	if (!MinesweeperClass->AreSettingsValid()) {
 		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("MinesweeperWindowWidgetDialogueNonValid", "Setting not valid"));
 		return;
 	} else {
-		GameOver = false;
 		UE_LOG(LogMinesweeperPlugin, Display, TEXT("Spawning mines"));
-		MinesPosition = TSet<int>();
-		for (int i = 0; i < Mines; ++i) {
-			bool AlreadyInSet;
-			do {
-				MinesPosition.Add(FMath::RandRange(0, GetGridSize() - 1), &AlreadyInSet);
-			} while (AlreadyInSet);
-		}
+		MinesweeperClass->SpawnMines();
 		// Remove old Grid
 		while (VerticalBox->NumSlots() >= 2) {
 			VerticalBox->RemoveSlot(VerticalBox->GetSlot(1).GetWidget());
 		}
 		auto GridSlot = VerticalBox->AddSlot();
 		TSharedRef<SVerticalBox> GridVertical = SNew(SVerticalBox);
-		for (int y = 0; y < Heigth; ++y) {
+		for (int y = 0; y < MinesweeperClass->GetHeigth(); ++y) {
 			auto GridRowSlot = GridVertical->AddSlot();
 			TSharedRef<SHorizontalBox> GridHorizontal = SNew(SHorizontalBox);
-			for (int x = 0; x < Width; ++x) {
+			for (int x = 0; x < MinesweeperClass->GetWidth(); ++x) {
 				GridHorizontal->AddSlot()[
 					SNew(SButton)
 						.HAlign(EHorizontalAlignment::HAlign_Center)
 						.VAlign(EVerticalAlignment::VAlign_Center)
 						.OnClicked_Lambda([this, x, y]() -> FReply {
-						if (!GameOver) {
+						if (!MinesweeperClass->GetGameOver()) {
 							FMinesweeperModule::OnButtonPressed(x, y);
 						}
 						return FReply::Handled();
@@ -267,33 +245,17 @@ void FMinesweeperModule::GenerateGrid() {
 	}
 }
 
-int FMinesweeperModule::CountNearestMines(const int InX, const int InY) const {
-	int NearesthBomb = 0;
-	for (int NearY = -1; NearY <= 1; ++NearY) {
-		for (int NearX = -1; NearX <= 1; ++NearX) {
-			if (IsOutOfGrid(InX + NearX, InY + NearY)) {
-				continue;
-			}
-			if (MinesPosition.Contains(GetIndex(InX + NearX, InY + NearY))) {
-				NearesthBomb++;
-			}
-		}
-	}
-	return NearesthBomb;
-}
-
 void FMinesweeperModule::OnButtonPressed(const int InX, const int InY) {
-	int CurrentIndex = GetIndex(InX, InY);
-	UE_LOG(LogMinesweeperPlugin, Display, TEXT("Clicked button at (%d, %d)[%d]"), InX, InY, CurrentIndex);
+	UE_LOG(LogMinesweeperPlugin, Display, TEXT("Clicked button at (%d, %d)"), InX, InY);
 
 	// Disable button
 	TSharedRef<SButton> CurrentButton = StaticCastSharedRef<SButton>(StaticCastSharedRef<SHorizontalBox>(StaticCastSharedRef<SVerticalBox>(VerticalBox->GetSlot(VerticalBox->NumSlots() > 2 ? 2 : 1).GetWidget())->GetSlot(InY).GetWidget())->GetSlot(InX).GetWidget());
 	CurrentButton->SetEnabled(false);
 
 	// Clicked on Mine
-	if (MinesPosition.Contains(CurrentIndex)) {
+	if (MinesweeperClass->ThereIsMineAt(InX, InY)) {
 		//Game Over
-		GameOver = true;
+		MinesweeperClass->SetGameOver();
 		CurrentButton->SetContent(
 			SNew(STextBlock)
 			.Text(FText::FromString(TEXT("X")))
@@ -305,11 +267,11 @@ void FMinesweeperModule::OnButtonPressed(const int InX, const int InY) {
 		VerticalBox->Invalidate(EInvalidateWidgetReason::ChildOrder);
 	} else {
 		//Count Nearest Mines
-		int NearestMines = CountNearestMines(InX, InY);
+		int NearestMines = MinesweeperClass->CountNearestMines(InX, InY);
 		if (NearestMines == 0) {
 			//Iterative Search
 			TMap<int, bool> Discovered = TMap<int, bool>();
-			Discovered.Add(CurrentIndex, false);
+			Discovered.Add(MinesweeperClass->IndexOf(InX, InY), false);
 			for (int NearY = -1; NearY <= 1; ++NearY) {
 				for (int NearX = -1; NearX <= 1; ++NearX) {
 					if (NearY == 0 && NearX == 0) {
@@ -329,23 +291,23 @@ void FMinesweeperModule::OnButtonPressed(const int InX, const int InY) {
 }
 
 void FMinesweeperModule::RevealFieldRecursive(const int InX, const int InY, TMap<int, bool>& InDiscovered) {
-	int CurrentIndex = GetIndex(InX, InY);
-	UE_LOG(LogMinesweeperPlugin, Display, TEXT("Recursive call on (%d, %d)[%d]"), InX, InY, CurrentIndex);
+	int CurrentIndex = MinesweeperClass->IndexOf(InX, InY);
+		UE_LOG(LogMinesweeperPlugin, Display, TEXT("Recursive call on (%d, %d)[%d]"), InX, InY, CurrentIndex);
 
 	//Out of Grid
-	if (IsOutOfGrid(InX, InY)) {
+	if (MinesweeperClass->IsOutOfGrid(InX, InY)) {
 		return;
 	}
 
 	//Set current field as discovered
-	InDiscovered.Add(CurrentIndex, MinesPosition.Contains(CurrentIndex));
+	InDiscovered.Add(CurrentIndex, MinesweeperClass->ThereIsMineAt(InX, InY));
 	//I'm a bomb
 	if (InDiscovered[CurrentIndex]) {
 		return;
 	}
 
 	//Count Nearest Mines
-	int NearestMines = CountNearestMines(InX, InY);
+	int NearestMines = MinesweeperClass->CountNearestMines(InX, InY);
 
 	// Disable button
 	TSharedRef<SButton> CurrentButton = StaticCastSharedRef<SButton>(StaticCastSharedRef<SHorizontalBox>(StaticCastSharedRef<SVerticalBox>(VerticalBox->GetSlot(VerticalBox->NumSlots() > 2 ? 2 : 1).GetWidget())->GetSlot(InY).GetWidget())->GetSlot(InX).GetWidget());
@@ -356,8 +318,7 @@ void FMinesweeperModule::RevealFieldRecursive(const int InX, const int InY, TMap
 		for (int NearY = -1; NearY <= 1; ++NearY) {
 			for (int NearX = -1; NearX <= 1; ++NearX) {
 				//I can not skip the current field because already added to the discovered
-				CurrentIndex = GetIndex(InX + NearX, InY + NearY);
-				if (!InDiscovered.Contains(CurrentIndex)) {
+				if (!InDiscovered.Contains(MinesweeperClass->IndexOf(InX + NearX, InY + NearY))) {
 					RevealFieldRecursive(InX + NearX, InY + NearY, InDiscovered);
 				}
 			}
