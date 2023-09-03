@@ -33,7 +33,7 @@ private:
 	void GenerateGrid();
 	int CountNearestMines(const int x, const int y) const;
 
-	FReply OnButtonPressed(const int x, const int y);
+	void OnButtonPressed(const int x, const int y);
 	void RevealFieldRecursive(const int x, const int y, TMap<int, bool> &discovered);
 
 private:

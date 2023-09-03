@@ -226,6 +226,7 @@ bool FMinesweeperModule::IsOutOfGrid(const int InX, const int InY) const {
 void FMinesweeperModule::GenerateGrid() {
 	if (Width <= 0 || Heigth <= 0 || Mines <= 0 || Mines > GetGridSize()) {
 		UE_LOG(LogMinesweeperPlugin, Error, TEXT("Values {Width: %d, Heigth: %d, Mines: %d} not valid for a new game"), Width, Heigth, Mines);
+		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("MinesweeperWindowWidgetDialogueNonValid", "Setting not valid"));
 		return;
 	} else {
 		GameOver = false;
@@ -249,11 +250,13 @@ void FMinesweeperModule::GenerateGrid() {
 			for (int x = 0; x < Width; ++x) {
 				GridHorizontal->AddSlot()[
 					SNew(SButton)
+						.HAlign(EHorizontalAlignment::HAlign_Center)
+						.VAlign(EVerticalAlignment::VAlign_Center)
 						.OnClicked_Lambda([this, x, y]() -> FReply {
-						if (GameOver) {
-							return FReply::Handled();
+						if (!GameOver) {
+							FMinesweeperModule::OnButtonPressed(x, y);
 						}
-						return FMinesweeperModule::OnButtonPressed(x, y);
+						return FReply::Handled();
 							})
 				];
 			}
@@ -279,7 +282,7 @@ int FMinesweeperModule::CountNearestMines(const int InX, const int InY) const {
 	return NearesthBomb;
 }
 
-FReply FMinesweeperModule::OnButtonPressed(const int InX, const int InY) {
+void FMinesweeperModule::OnButtonPressed(const int InX, const int InY) {
 	int CurrentIndex = GetIndex(InX, InY);
 	UE_LOG(LogMinesweeperPlugin, Display, TEXT("Clicked button at (%d, %d)[%d]"), InX, InY, CurrentIndex);
 
@@ -291,6 +294,10 @@ FReply FMinesweeperModule::OnButtonPressed(const int InX, const int InY) {
 	if (MinesPosition.Contains(CurrentIndex)) {
 		//Game Over
 		GameOver = true;
+		CurrentButton->SetContent(
+			SNew(STextBlock)
+			.Text(FText::FromString(TEXT("X")))
+		);
 		VerticalBox->InsertSlot(1).AutoHeight().VAlign(EVerticalAlignment::VAlign_Center).HAlign(EHorizontalAlignment::HAlign_Center).AttachWidget(
 			SNew(STextBlock)
 			.Text(LOCTEXT("MinesweeperWindowWidgetGameOver", "Game Over"))
@@ -319,7 +326,6 @@ FReply FMinesweeperModule::OnButtonPressed(const int InX, const int InY) {
 			);
 		}
 	}
-	return FReply::Handled();
 }
 
 void FMinesweeperModule::RevealFieldRecursive(const int InX, const int InY, TMap<int, bool>& InDiscovered) {
