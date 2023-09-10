@@ -262,7 +262,7 @@ void FMinesweeperModule::OnButtonPressed(const int InX, const int InY) {
 		);
 		VerticalBox->InsertSlot(1).AutoHeight().VAlign(EVerticalAlignment::VAlign_Center).HAlign(EHorizontalAlignment::HAlign_Center).AttachWidget(
 			SNew(STextBlock)
-			.Text(LOCTEXT("MinesweeperWindowWidgetGameOver", "Game Over"))
+			.Text(LOCTEXT("MinesweeperWindowWidgetGameOverLose", "Game Over"))
 		);
 		VerticalBox->Invalidate(EInvalidateWidgetReason::ChildOrder);
 	} else {
@@ -281,18 +281,27 @@ void FMinesweeperModule::OnButtonPressed(const int InX, const int InY) {
 				}
 			}
 		} else {
+			MinesweeperClass->AddDiscoveredField();
 			//Write number of nearest Mines
 			CurrentButton->SetContent(
 				SNew(STextBlock)
 				.Text(FText::AsNumber(NearestMines))
 			);
 		}
+		if (MinesweeperClass->GetGameOver()) {
+			//Discovered all fields. I win
+			VerticalBox->InsertSlot(1).AutoHeight().VAlign(EVerticalAlignment::VAlign_Center).HAlign(EHorizontalAlignment::HAlign_Center).AttachWidget(
+				SNew(STextBlock)
+				.Text(LOCTEXT("MinesweeperWindowWidgetGameOverWin", "You win"))
+			);
+			VerticalBox->Invalidate(EInvalidateWidgetReason::ChildOrder);
+		}
 	}
 }
 
 void FMinesweeperModule::RevealFieldRecursive(const int InX, const int InY, TMap<int, bool>& InDiscovered) {
 	int CurrentIndex = MinesweeperClass->IndexOf(InX, InY);
-		UE_LOG(LogMinesweeperPlugin, Display, TEXT("Recursive call on (%d, %d)[%d]"), InX, InY, CurrentIndex);
+	UE_LOG(LogMinesweeperPlugin, Display, TEXT("Recursive call on (%d, %d)[%d]"), InX, InY, CurrentIndex);
 
 	//Out of Grid
 	if (MinesweeperClass->IsOutOfGrid(InX, InY)) {
@@ -330,6 +339,7 @@ void FMinesweeperModule::RevealFieldRecursive(const int InX, const int InY, TMap
 			.Text(FText::AsNumber(NearestMines))
 		);
 	}
+	MinesweeperClass->AddDiscoveredField();
 }
 
 #undef LOCTEXT_NAMESPACE
