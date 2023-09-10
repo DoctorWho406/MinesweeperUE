@@ -24,10 +24,13 @@ public:
 	bool AreSettingsValid() const;
 
 	void SpawnMines();
+
 	int IndexOf(const int InX, const int InY) const;
 	bool IsOutOfGrid(const int InX, const int InY) const;
 	bool ThereIsMineAt(const int InX, const int InY) const;
 	int CountNearestMines(const int InX, const int InY) const;
+
+	void AddDiscoveredField();
 private:
 	int GridSize() const;
 private:
@@ -36,6 +39,8 @@ private:
 	int Width = 0;
 	int Heigth = 0;
 	int Mines = 0;
+
+	int DiscoveredField;
 
 	TSet<int> MinesPosition;
 };

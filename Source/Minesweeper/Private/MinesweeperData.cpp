@@ -83,6 +83,11 @@ int MinesweeperData::CountNearestMines(const int InX, const int InY) const {
 	return NearesthBomb;
 }
 
+void MinesweeperData::AddDiscoveredField() {
+	DiscoveredField += 1;
+	GameOver = DiscoveredField >= GridSize() - Mines;
+}
+
 int MinesweeperData::GridSize() const {
 	return Width * Heigth;
 }
